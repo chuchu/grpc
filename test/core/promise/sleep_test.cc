@@ -14,7 +14,7 @@
 
 #include "src/core/lib/promise/sleep.h"
 
-#include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -24,9 +24,11 @@
 #include "gtest/gtest.h"
 
 #include <grpc/grpc.h>
+#include <grpc/support/log.h>
 
 #include "src/core/lib/event_engine/default_event_engine.h"
 #include "src/core/lib/gprpp/notification.h"
+#include "src/core/lib/gprpp/orphanable.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/promise/exec_ctx_wakeup_scheduler.h"
 #include "src/core/lib/promise/race.h"
@@ -51,7 +53,7 @@ TEST(Sleep, Zzzz) {
   ExecCtx exec_ctx;
   Notification done;
   Timestamp done_time = Timestamp::Now() + Duration::Seconds(1);
-  auto engine = grpc_event_engine::experimental::GetDefaultEventEngine();
+  auto engine = GetDefaultEventEngine();
   // Sleep for one second then set done to true.
   auto activity = MakeActivity(
       Sleep(done_time), InlineWakeupScheduler(),
@@ -87,7 +89,7 @@ TEST(Sleep, OverlyEagerEventEngine) {
   EXPECT_NE(wakeup, nullptr);
   EXPECT_FALSE(done);
   // Schedule the wakeup instantaneously - It won't have passed the scheduled
-  // time yet, but sleep should believe the event engine.
+  // time yet, but sleep should believe the EventEngine.
   wakeup->Run();
   EXPECT_TRUE(done);
 }
@@ -96,7 +98,7 @@ TEST(Sleep, AlreadyDone) {
   ExecCtx exec_ctx;
   Notification done;
   Timestamp done_time = Timestamp::Now() - Duration::Seconds(1);
-  auto engine = grpc_event_engine::experimental::GetDefaultEventEngine();
+  auto engine = GetDefaultEventEngine();
   // Sleep for no time at all then set done to true.
   auto activity = MakeActivity(
       Sleep(done_time), InlineWakeupScheduler(),
@@ -112,7 +114,7 @@ TEST(Sleep, Cancel) {
   ExecCtx exec_ctx;
   Notification done;
   Timestamp done_time = Timestamp::Now() + Duration::Seconds(1);
-  auto engine = grpc_event_engine::experimental::GetDefaultEventEngine();
+  auto engine = GetDefaultEventEngine();
   // Sleep for one second but race it to complete immediately
   auto activity = MakeActivity(
       Race(Sleep(done_time), [] { return absl::CancelledError(); }),
@@ -134,7 +136,7 @@ TEST(Sleep, MoveSemantics) {
   Timestamp done_time = Timestamp::Now() + Duration::Milliseconds(111);
   Sleep donor(done_time);
   Sleep sleeper = std::move(donor);
-  auto engine = grpc_event_engine::experimental::GetDefaultEventEngine();
+  auto engine = GetDefaultEventEngine();
   auto activity = MakeActivity(
       std::move(sleeper), InlineWakeupScheduler(),
       [&done](absl::Status r) {
@@ -153,7 +155,7 @@ TEST(Sleep, StressTest) {
   ExecCtx exec_ctx;
   std::vector<std::shared_ptr<Notification>> notifications;
   std::vector<ActivityPtr> activities;
-  auto engine = grpc_event_engine::experimental::GetDefaultEventEngine();
+  auto engine = GetDefaultEventEngine();
   gpr_log(GPR_INFO, "Starting %d sleeps for 1sec", kNumActivities);
   for (int i = 0; i < kNumActivities; i++) {
     auto notification = std::make_shared<Notification>();

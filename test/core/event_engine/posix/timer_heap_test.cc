@@ -1,20 +1,20 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include "src/core/lib/event_engine/posix_engine/timer_heap.h"
 
@@ -22,9 +22,9 @@
 #include <stdlib.h>
 
 #include <algorithm>
-#include <memory>
 #include <utility>
 
+#include "absl/log/check.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -37,7 +37,7 @@ using testing::Contains;
 using testing::Not;
 
 namespace grpc_event_engine {
-namespace posix_engine {
+namespace experimental {
 
 namespace {
 int64_t RandomDeadline(void) { return rand(); }
@@ -82,8 +82,8 @@ TEST(TimerHeapTest, Basics) {
     inpq.set(i);
   }
   for (i = 0; i < num_test_elements; ++i) {
-    /* Test that check still succeeds even for element that wasn't just
-       inserted. */
+    // Test that check still succeeds even for element that wasn't just
+    // inserted.
     EXPECT_THAT(pq.TestOnlyGetTimers(), Contains(&test_elements[i]));
   }
 
@@ -93,7 +93,7 @@ TEST(TimerHeapTest, Basics) {
   for (i = 0; i < num_test_operations; ++i) {
     size_t elem_num = static_cast<size_t>(rand()) % num_test_elements;
     Timer* el = &test_elements[elem_num];
-    if (!inpq.is_set(elem_num)) { /* not in pq */
+    if (!inpq.is_set(elem_num)) {  // not in pq
       EXPECT_THAT(pq.TestOnlyGetTimers(), Not(Contains(el)));
       el->deadline = RandomDeadline();
       pq.Add(el);
@@ -145,7 +145,7 @@ TEST(TimerHeapTest, RandomMutations) {
   for (size_t round = 0; round < 10000; round++) {
     int r = rand() % 1000;
     if (r <= 550) {
-      /* 55% of the time we try to add something */
+      // 55% of the time we try to add something
       ElemStruct* el = SearchElems(elems, false);
       if (el != nullptr) {
         el->elem.deadline = RandomDeadline();
@@ -155,7 +155,7 @@ TEST(TimerHeapTest, RandomMutations) {
         CheckValid(&pq);
       }
     } else if (r <= 650) {
-      /* 10% of the time we try to remove something */
+      // 10% of the time we try to remove something
       ElemStruct* el = SearchElems(elems, true);
       if (el != nullptr) {
         pq.Remove(&el->elem);
@@ -164,13 +164,13 @@ TEST(TimerHeapTest, RandomMutations) {
         CheckValid(&pq);
       }
     } else {
-      /* the remaining times we pop */
+      // the remaining times we pop
       if (num_inserted > 0) {
         Timer* top = pq.Top();
         pq.Pop();
         for (size_t i = 0; i < elems_size; i++) {
           if (top == &elems[i].elem) {
-            GPR_ASSERT(elems[i].inserted);
+            CHECK(elems[i].inserted);
             elems[i].inserted = false;
           }
         }
@@ -192,13 +192,13 @@ TEST(TimerHeapTest, RandomMutations) {
           }
         }
       }
-      GPR_ASSERT(pq.Top()->deadline == *min_deadline);
+      CHECK(pq.Top()->deadline == *min_deadline);
     }
   }
 }
 
 }  // namespace
-}  // namespace posix_engine
+}  // namespace experimental
 }  // namespace grpc_event_engine
 
 int main(int argc, char** argv) {

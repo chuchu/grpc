@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <grpc/support/port_platform.h>
-
 #include "src/core/ext/transport/binder/utils/ndk_binder.h"
+
+#include <grpc/support/port_platform.h>
 
 #ifndef GRPC_NO_BINDER
 
@@ -22,8 +22,11 @@
 
 #include <dlfcn.h>
 
+#include "absl/log/check.h"
+
 #include <grpc/support/log.h>
 
+#include "src/core/lib/gprpp/crash.h"
 #include "src/core/lib/gprpp/sync.h"
 
 namespace {
@@ -35,7 +38,7 @@ void* GetNdkBinderHandle() {
     gpr_log(
         GPR_ERROR,
         "Cannot open libbinder_ndk.so. Does this device support API level 29?");
-    GPR_ASSERT(0);
+    CHECK(0);
   }
   return handle;
 }
@@ -101,7 +104,7 @@ namespace ndk_util {
             "dlsym failed. Cannot find %s in libbinder_ndk.so. "       \
             "BinderTransport requires API level >= 33",                \
             #name);                                                    \
-    GPR_ASSERT(0);                                                     \
+    CHECK(0);                                                          \
   }                                                                    \
   return ptr
 

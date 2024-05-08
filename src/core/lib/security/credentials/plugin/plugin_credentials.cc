@@ -1,34 +1,34 @@
-/*
- *
- * Copyright 2016 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
-#include <grpc/support/port_platform.h>
+//
+//
+// Copyright 2016 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include "src/core/lib/security/credentials/plugin/plugin_credentials.h"
 
 #include <atomic>
+#include <memory>
 
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 
-#include <grpc/slice.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
@@ -37,7 +37,6 @@
 #include "src/core/lib/slice/slice_internal.h"
 #include "src/core/lib/surface/api_trace.h"
 #include "src/core/lib/surface/validate_metadata.h"
-#include "src/core/lib/transport/call_fragments.h"
 #include "src/core/lib/transport/metadata_batch.h"
 
 grpc_core::TraceFlag grpc_plugin_credentials_trace(false, "plugin_credentials");
@@ -119,7 +118,7 @@ grpc_plugin_credentials::PendingRequest::PollAsyncResult() {
 void grpc_plugin_credentials::PendingRequest::RequestMetadataReady(
     void* request, const grpc_metadata* md, size_t num_md,
     grpc_status_code status, const char* error_details) {
-  /* called from application code */
+  // called from application code
   grpc_core::ApplicationCallbackExecCtx callback_exec_ctx;
   grpc_core::ExecCtx exec_ctx(GRPC_EXEC_CTX_FLAG_IS_FINISHED |
                               GRPC_EXEC_CTX_FLAG_THREAD_RESOURCE_LOOP);
@@ -153,7 +152,8 @@ grpc_plugin_credentials::GetRequestMetadata(
 
   // Create pending_request object.
   auto request = grpc_core::MakeRefCounted<PendingRequest>(
-      Ref(), std::move(initial_metadata), args);
+      RefAsSubclass<grpc_plugin_credentials>(), std::move(initial_metadata),
+      args);
   // Invoke the plugin.  The callback holds a ref to us.
   if (GRPC_TRACE_FLAG_ENABLED(grpc_plugin_credentials_trace)) {
     gpr_log(GPR_INFO, "plugin_credentials[%p]: request %p: invoking plugin",
@@ -210,6 +210,6 @@ grpc_call_credentials* grpc_metadata_credentials_create_from_plugin(
     grpc_security_level min_security_level, void* reserved) {
   GRPC_API_TRACE("grpc_metadata_credentials_create_from_plugin(reserved=%p)", 1,
                  (reserved));
-  GPR_ASSERT(reserved == nullptr);
+  CHECK_EQ(reserved, nullptr);
   return new grpc_plugin_credentials(plugin, min_security_level);
 }

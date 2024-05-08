@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <grpc/support/port_platform.h>
-
 #include "src/core/lib/security/authorization/grpc_authorization_policy_provider.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <grpc/grpc_security.h>
+#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/security/authorization/grpc_authorization_engine.h"
-#include "test/core/util/test_config.h"
-#include "test/core/util/tls_utils.h"
+#include "test/core/test_util/test_config.h"
+#include "test/core/test_util/tls_utils.h"
 
 #define VALID_POLICY_PATH_1 \
   "test/core/security/authorization/test_policies/valid_policy_1.json"
@@ -131,11 +130,7 @@ TEST(AuthorizationPolicyProviderTest, FileWatcherSuccessValidPolicyRefresh) {
   EXPECT_EQ(allow_engine->num_policies(), 2);
   deny_engine =
       dynamic_cast<GrpcAuthorizationEngine*>(engines.deny_engine.get());
-  ASSERT_NE(deny_engine, nullptr);
-  EXPECT_EQ(deny_engine->action(), Rbac::Action::kDeny);
-  EXPECT_EQ(deny_engine->num_policies(), 0);
-  dynamic_cast<FileWatcherAuthorizationPolicyProvider*>(provider->get())
-      ->SetCallbackForTesting(nullptr);
+  EXPECT_EQ(deny_engine, nullptr);
 }
 
 TEST(AuthorizationPolicyProviderTest,
@@ -260,11 +255,7 @@ TEST(AuthorizationPolicyProviderTest, FileWatcherRecoversFromFailure) {
   EXPECT_EQ(allow_engine->num_policies(), 2);
   deny_engine =
       dynamic_cast<GrpcAuthorizationEngine*>(engines.deny_engine.get());
-  ASSERT_NE(deny_engine, nullptr);
-  EXPECT_EQ(deny_engine->action(), Rbac::Action::kDeny);
-  EXPECT_EQ(deny_engine->num_policies(), 0);
-  dynamic_cast<FileWatcherAuthorizationPolicyProvider*>(provider->get())
-      ->SetCallbackForTesting(nullptr);
+  EXPECT_EQ(deny_engine, nullptr);
 }
 
 }  // namespace grpc_core

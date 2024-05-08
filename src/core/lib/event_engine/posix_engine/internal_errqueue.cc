@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <grpc/support/port_platform.h>
-
 #include "src/core/lib/event_engine/posix_engine/internal_errqueue.h"
 
-#include <string>
-
 #include <grpc/support/log.h>
+#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/iomgr/port.h"
 
@@ -35,7 +32,7 @@
 #include "src/core/lib/gprpp/strerror.h"
 
 namespace grpc_event_engine {
-namespace posix_engine {
+namespace experimental {
 
 #ifdef GRPC_LINUX_ERRQUEUE
 int GetSocketTcpInfo(struct tcp_info* info, int fd) {
@@ -71,7 +68,7 @@ bool KernelSupportsErrqueue() {
   return errqueue_supported;
 }
 
-}  // namespace posix_engine
+}  // namespace experimental
 }  // namespace grpc_event_engine
 
 #endif  // GRPC_POSIX_SOCKET_TCP

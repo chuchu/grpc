@@ -14,7 +14,8 @@
 
 #include "src/core/lib/promise/promise.h"
 
-#include <type_traits>
+#include <memory>
+#include <utility>
 
 #include "gtest/gtest.h"
 

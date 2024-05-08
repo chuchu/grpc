@@ -1,25 +1,23 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
-#ifndef GRPC_CORE_LIB_HTTP_HTTPCLI_H
-#define GRPC_CORE_LIB_HTTP_HTTPCLI_H
-
-#include <grpc/support/port_platform.h>
+#ifndef GRPC_SRC_CORE_LIB_HTTP_HTTPCLI_H
+#define GRPC_SRC_CORE_LIB_HTTP_HTTPCLI_H
 
 #include <stddef.h>
 
@@ -33,9 +31,10 @@
 #include "absl/types/optional.h"
 
 #include <grpc/grpc.h>
-#include <grpc/impl/codegen/grpc_types.h>
 #include <grpc/slice.h>
+#include <grpc/support/port_platform.h>
 
+#include "src/core/handshaker/handshaker.h"
 #include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/orphanable.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
@@ -52,13 +51,12 @@
 #include "src/core/lib/iomgr/resolve_address.h"
 #include "src/core/lib/iomgr/resolved_address.h"
 #include "src/core/lib/resource_quota/resource_quota.h"
-#include "src/core/lib/transport/handshaker.h"
 #include "src/core/lib/uri/uri_parser.h"
 
-/* User agent this library reports */
+// User agent this library reports
 #define GRPC_HTTPCLI_USER_AGENT "grpc-httpcli/0.0"
 
-/* override functions return 1 if they handled the request, 0 otherwise */
+// override functions return 1 if they handled the request, 0 otherwise
 typedef int (*grpc_httpcli_get_override)(const grpc_http_request* request,
                                          const char* host, const char* path,
                                          grpc_core::Timestamp deadline,
@@ -101,12 +99,11 @@ class HttpRequest : public InternallyRefCounted<HttpRequest> {
   //   nullptr is treated as insecure credentials.
   //   TODO(yihuaz): disallow nullptr as a value after unsecure builds
   //   are removed.
-  static OrphanablePtr<HttpRequest> Get(
+  GRPC_MUST_USE_RESULT static OrphanablePtr<HttpRequest> Get(
       URI uri, const grpc_channel_args* args, grpc_polling_entity* pollent,
       const grpc_http_request* request, Timestamp deadline,
       grpc_closure* on_done, grpc_http_response* response,
-      RefCountedPtr<grpc_channel_credentials> channel_creds)
-      GRPC_MUST_USE_RESULT;
+      RefCountedPtr<grpc_channel_credentials> channel_creds);
 
   // Asynchronously perform a HTTP POST.
   // 'uri' is the target to make the request to. The scheme field is used to
@@ -127,12 +124,11 @@ class HttpRequest : public InternallyRefCounted<HttpRequest> {
   //   TODO(apolcyn): disallow nullptr as a value after unsecure builds
   //   are removed.
   // Does not support ?var1=val1&var2=val2 in the path.
-  static OrphanablePtr<HttpRequest> Post(
+  GRPC_MUST_USE_RESULT static OrphanablePtr<HttpRequest> Post(
       URI uri, const grpc_channel_args* args, grpc_polling_entity* pollent,
       const grpc_http_request* request, Timestamp deadline,
       grpc_closure* on_done, grpc_http_response* response,
-      RefCountedPtr<grpc_channel_credentials> channel_creds)
-      GRPC_MUST_USE_RESULT;
+      RefCountedPtr<grpc_channel_credentials> channel_creds);
 
   // Asynchronously perform a HTTP PUT.
   // 'uri' is the target to make the request to. The scheme field is used to
@@ -153,12 +149,11 @@ class HttpRequest : public InternallyRefCounted<HttpRequest> {
   //   TODO(apolcyn): disallow nullptr as a value after unsecure builds
   //   are removed.
   // Does not support ?var1=val1&var2=val2 in the path.
-  static OrphanablePtr<HttpRequest> Put(
+  GRPC_MUST_USE_RESULT static OrphanablePtr<HttpRequest> Put(
       URI uri, const grpc_channel_args* args, grpc_polling_entity* pollent,
       const grpc_http_request* request, Timestamp deadline,
       grpc_closure* on_done, grpc_http_response* response,
-      RefCountedPtr<grpc_channel_credentials> channel_creds)
-      GRPC_MUST_USE_RESULT;
+      RefCountedPtr<grpc_channel_credentials> channel_creds);
 
   HttpRequest(URI uri, const grpc_slice& request_text,
               grpc_http_response* response, Timestamp deadline,
@@ -269,4 +264,4 @@ class HttpRequest : public InternallyRefCounted<HttpRequest> {
 
 }  // namespace grpc_core
 
-#endif /* GRPC_CORE_LIB_HTTP_HTTPCLI_H */
+#endif  // GRPC_SRC_CORE_LIB_HTTP_HTTPCLI_H

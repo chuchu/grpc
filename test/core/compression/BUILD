@@ -14,24 +14,14 @@
 
 load(
     "//bazel:grpc_build_system.bzl",
-    "grpc_cc_library",
     "grpc_cc_test",
     "grpc_package",
 )
-load("//test/core/util:grpc_fuzzer.bzl", "grpc_fuzzer")
+load("//test/core/test_util:grpc_fuzzer.bzl", "grpc_fuzzer")
 
 grpc_package(name = "test/core/compression")
 
 licenses(["notice"])
-
-grpc_cc_library(
-    name = "args_utils",
-    testonly = 1,
-    srcs = ["args_utils.cc"],
-    hdrs = ["args_utils.h"],
-    visibility = ["//visibility:public"],
-    deps = ["//:grpc"],
-)
 
 grpc_cc_test(
     name = "compression_test",
@@ -41,10 +31,10 @@ grpc_cc_test(
     uses_event_engine = False,
     uses_polling = False,
     deps = [
-        ":args_utils",
         "//:gpr",
         "//:grpc",
-        "//test/core/util:grpc_test_util",
+        "//src/core:channel_args",
+        "//test/core/test_util:grpc_test_util",
     ],
 )
 
@@ -57,7 +47,7 @@ grpc_fuzzer(
     uses_polling = False,
     deps = [
         "//:grpc",
-        "//test/core/util:grpc_test_util",
+        "//test/core/test_util:grpc_test_util",
     ],
 )
 
@@ -70,7 +60,7 @@ grpc_fuzzer(
     uses_polling = False,
     deps = [
         "//:grpc",
-        "//test/core/util:grpc_test_util",
+        "//test/core/test_util:grpc_test_util",
     ],
 )
 
@@ -84,7 +74,7 @@ grpc_cc_test(
     deps = [
         "//:gpr",
         "//:grpc",
-        "//test/core/util:grpc_test_util",
-        "//test/core/util:grpc_test_util_base",
+        "//test/core/test_util:grpc_test_util",
+        "//test/core/test_util:grpc_test_util_base",
     ],
 )

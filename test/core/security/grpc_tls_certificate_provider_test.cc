@@ -22,15 +22,17 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "absl/log/check.h"
+
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/string_util.h>
 
 #include "src/core/lib/gpr/tmpfile.h"
-#include "src/core/lib/iomgr/load_file.h"
+#include "src/core/lib/gprpp/crash.h"
 #include "src/core/lib/slice/slice_internal.h"
-#include "test/core/util/test_config.h"
-#include "test/core/util/tls_utils.h"
+#include "test/core/test_util/test_config.h"
+#include "test/core/test_util/tls_utils.h"
 
 #define CA_CERT_PATH "src/core/tsi/test_creds/ca.pem"
 #define SERVER_CERT_PATH "src/core/tsi/test_creds/server1.pem"
@@ -134,17 +136,17 @@ class GrpcTlsCertificateProviderTest : public ::testing::Test {
     void OnError(grpc_error_handle root_cert_error,
                  grpc_error_handle identity_cert_error) override {
       MutexLock lock(&state_->mu);
-      GPR_ASSERT(!root_cert_error.ok() || !identity_cert_error.ok());
+      CHECK(!root_cert_error.ok() || !identity_cert_error.ok());
       std::string root_error_str;
       std::string identity_error_str;
       if (!root_cert_error.ok()) {
-        GPR_ASSERT(grpc_error_get_str(
+        CHECK(grpc_error_get_str(
             root_cert_error, StatusStrProperty::kDescription, &root_error_str));
       }
       if (!identity_cert_error.ok()) {
-        GPR_ASSERT(grpc_error_get_str(identity_cert_error,
-                                      StatusStrProperty::kDescription,
-                                      &identity_error_str));
+        CHECK(grpc_error_get_str(identity_cert_error,
+                                 StatusStrProperty::kDescription,
+                                 &identity_error_str));
       }
       state_->error_queue.emplace_back(std::move(root_error_str),
                                        std::move(identity_error_str));
@@ -485,6 +487,13 @@ TEST_F(GrpcTlsCertificateProviderTest,
   EXPECT_THAT(watcher_state_1->GetCredentialQueue(), ::testing::ElementsAre());
   // Clean up.
   CancelWatch(watcher_state_1);
+}
+
+TEST_F(GrpcTlsCertificateProviderTest,
+       FileWatcherCertificateProviderTooShortRefreshIntervalIsOverwritten) {
+  FileWatcherCertificateProvider provider(SERVER_KEY_PATH, SERVER_CERT_PATH,
+                                          CA_CERT_PATH, 0);
+  ASSERT_THAT(provider.TestOnlyGetRefreshIntervalSecond(), 1);
 }
 
 TEST_F(GrpcTlsCertificateProviderTest, FailedKeyCertMatchOnEmptyPrivateKey) {

@@ -1,33 +1,35 @@
-/*
- *
- * Copyright 2016 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-#include <grpc/support/port_platform.h>
-
+//
+//
+// Copyright 2016 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 #include "src/core/lib/iomgr/error.h"
 
 #include <inttypes.h>
 #include <string.h>
 
+#include "absl/log/check.h"
 #include "absl/strings/str_format.h"
 
-#include <grpc/impl/codegen/status.h>
+#include <grpc/status.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/port_platform.h>
 #include <grpc/support/string_util.h>
+
+#include "src/core/lib/gprpp/crash.h"
 
 #ifdef GPR_WINDOWS
 #include <grpc/support/log_windows.h>
@@ -54,10 +56,6 @@ absl::Status grpc_status_create(absl::StatusCode code, absl::string_view msg,
   return s;
 }
 
-std::string grpc_error_std_string(absl::Status error) {
-  return grpc_core::StatusToString(error);
-}
-
 absl::Status grpc_os_error(const grpc_core::DebugLocation& location, int err,
                            const char* call_name) {
   auto err_string = grpc_core::StrError(err);
@@ -72,11 +70,42 @@ absl::Status grpc_os_error(const grpc_core::DebugLocation& location, int err,
 }
 
 #ifdef GPR_WINDOWS
+std::string WSAErrorToShortDescription(int err) {
+  switch (err) {
+    case WSAEACCES:
+      return "Permission denied";
+    case WSAEFAULT:
+      return "Bad address";
+    case WSAEMFILE:
+      return "Too many open files";
+    case WSAEMSGSIZE:
+      return "Message too long";
+    case WSAENETDOWN:
+      return "Network is down";
+    case WSAENETUNREACH:
+      return "Network is unreachable";
+    case WSAENETRESET:
+      return "Network dropped connection on reset";
+    case WSAECONNABORTED:
+      return "Connection aborted";
+    case WSAECONNRESET:
+      return "Connection reset";
+    case WSAETIMEDOUT:
+      return "Connection timed out";
+    case WSAECONNREFUSED:
+      return "Connection refused";
+    case WSAEHOSTUNREACH:
+      return "No route to host";
+    default:
+      return "WSA Error";
+  };
+}
+// TODO(veblush): lift out of iomgr for use in the WindowsEventEngine
 absl::Status grpc_wsa_error(const grpc_core::DebugLocation& location, int err,
-                            const char* call_name) {
+                            absl::string_view call_name) {
   char* utf8_message = gpr_format_message(err);
-  absl::Status s =
-      StatusCreate(absl::StatusCode::kUnavailable, "WSA Error", location, {});
+  absl::Status s = StatusCreate(absl::StatusCode::kUnavailable,
+                                WSAErrorToShortDescription(err), location, {});
   StatusSetInt(&s, grpc_core::StatusIntProperty::kWsaError, err);
   StatusSetInt(&s, grpc_core::StatusIntProperty::kRpcStatus,
                GRPC_STATUS_UNAVAILABLE);
@@ -173,9 +202,6 @@ bool grpc_error_get_str(grpc_error_handle error,
           case absl::StatusCode::kOk:
             *s = "";
             return true;
-          case absl::StatusCode::kResourceExhausted:
-            *s = "RESOURCE_EXHAUSTED";
-            return true;
           case absl::StatusCode::kCancelled:
             *s = "CANCELLED";
             return true;
@@ -202,7 +228,7 @@ grpc_error_handle grpc_error_add_child(grpc_error_handle src,
 
 bool grpc_log_error(const char* what, grpc_error_handle error, const char* file,
                     int line) {
-  GPR_DEBUG_ASSERT(!error.ok());
+  DCHECK(!error.ok());
   gpr_log(file, line, GPR_LOG_SEVERITY_ERROR, "%s: %s", what,
           grpc_core::StatusToString(error).c_str());
   return false;

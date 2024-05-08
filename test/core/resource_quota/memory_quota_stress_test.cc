@@ -36,7 +36,7 @@
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/resource_quota/memory_quota.h"
-#include "test/core/util/test_config.h"
+#include "test/core/test_util/test_config.h"
 
 namespace grpc_core {
 
@@ -51,8 +51,7 @@ class StressTest {
     std::random_device g;
     std::uniform_int_distribution<size_t> dist(0, num_quotas - 1);
     for (size_t i = 0; i < num_allocators; ++i) {
-      allocators_.emplace_back(quotas_[dist(g)].CreateMemoryOwner(
-          absl::StrCat("allocator[", i, "]")));
+      allocators_.emplace_back(quotas_[dist(g)].CreateMemoryOwner());
     }
   }
 
@@ -113,7 +112,7 @@ class StressTest {
           quotas_distribution_(0, test_->quotas_.size() - 1),
           allocators_distribution_(0, test_->allocators_.size() - 1),
           size_distribution_(1, 4 * 1024 * 1024),
-          quota_size_distribution_(1024 * 1024, size_t(8) * 1024 * 1024 * 1024),
+          quota_size_distribution_(1024 * 1024, size_t{8} * 1024 * 1024 * 1024),
           choose_variable_size_(1, 100) {}
 
     // Choose a random quota, and return an owned pointer to it.

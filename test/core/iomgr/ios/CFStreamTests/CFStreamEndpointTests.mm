@@ -27,7 +27,6 @@
 #include <netinet/in.h>
 
 #include <grpc/grpc.h>
-#include <grpc/impl/codegen/sync.h>
 #include <grpc/support/sync.h>
 
 #include "src/core/lib/address_utils/parse_address.h"
@@ -37,7 +36,7 @@
 #include "src/core/lib/iomgr/resolve_address.h"
 #include "src/core/lib/iomgr/tcp_client.h"
 #include "src/core/lib/resource_quota/api.h"
-#include "test/core/util/test_config.h"
+#include "test/core/test_util/test_config.h"
 
 #include <chrono>
 #include <future>

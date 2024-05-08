@@ -16,11 +16,14 @@
 
 #include <memory>
 
+#include "absl/log/check.h"
 #include "absl/memory/memory.h"
 #include "absl/utility/utility.h"
 
 #include "src/core/lib/address_utils/sockaddr_utils.h"
+#include "src/core/lib/event_engine/default_event_engine.h"
 #include "src/core/lib/gprpp/sync.h"
+#include "src/core/lib/iomgr/exec_ctx.h"
 
 // defined in tcp_client.cc
 extern grpc_tcp_client_vtable* grpc_tcp_client_impl;
@@ -87,9 +90,9 @@ bool ConnectionAttemptInjector::TcpConnectCancel(
 ConnectionAttemptInjector::ConnectionAttemptInjector() {
   // Fail if ConnectionAttemptInjector::Init() was not called after
   // grpc_init() to inject the vtable.
-  GPR_ASSERT(grpc_tcp_client_impl == &kDelayedConnectVTable);
+  CHECK(grpc_tcp_client_impl == &kDelayedConnectVTable);
   grpc_core::MutexLock lock(g_mu);
-  GPR_ASSERT(g_injector == nullptr);
+  CHECK_EQ(g_injector, nullptr);
   g_injector = this;
 }
 
@@ -166,18 +169,18 @@ ConnectionAttemptInjector::QueuedAttempt::QueuedAttempt(
 }
 
 ConnectionAttemptInjector::QueuedAttempt::~QueuedAttempt() {
-  GPR_ASSERT(closure_ == nullptr);
+  CHECK_EQ(closure_, nullptr);
 }
 
 void ConnectionAttemptInjector::QueuedAttempt::Resume() {
-  GPR_ASSERT(closure_ != nullptr);
+  CHECK_NE(closure_, nullptr);
   g_original_vtable->connect(closure_, endpoint_, interested_parties_, config_,
                              &address_, deadline_);
   closure_ = nullptr;
 }
 
 void ConnectionAttemptInjector::QueuedAttempt::Fail(grpc_error_handle error) {
-  GPR_ASSERT(closure_ != nullptr);
+  CHECK_NE(closure_, nullptr);
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, closure_, error);
   closure_ = nullptr;
 }
@@ -191,17 +194,19 @@ ConnectionAttemptInjector::InjectedDelay::InjectedDelay(
     grpc_pollset_set* interested_parties, const EndpointConfig& config,
     const grpc_resolved_address* addr, grpc_core::Timestamp deadline)
     : attempt_(closure, ep, interested_parties, config, addr, deadline) {
-  GRPC_CLOSURE_INIT(&timer_callback_, TimerCallback, this, nullptr);
   grpc_core::Timestamp now = grpc_core::Timestamp::Now();
   duration = std::min(duration, deadline - now);
-  grpc_timer_init(&timer_, now + duration, &timer_callback_);
+  grpc_event_engine::experimental::GetDefaultEventEngine()->RunAfter(
+      duration, [this] {
+        grpc_core::ApplicationCallbackExecCtx callback_exec_ctx;
+        grpc_core::ExecCtx exec_ctx;
+        TimerCallback();
+      });
 }
 
-void ConnectionAttemptInjector::InjectedDelay::TimerCallback(
-    void* arg, grpc_error_handle /*error*/) {
-  auto* self = static_cast<InjectedDelay*>(arg);
-  self->attempt_.Resume();
-  delete self;
+void ConnectionAttemptInjector::InjectedDelay::TimerCallback() {
+  attempt_.Resume();
+  delete this;
 }
 
 //

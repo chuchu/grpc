@@ -20,6 +20,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
+
 #include <grpc/event_engine/memory_allocator.h>
 #include <grpc/support/log.h>
 
@@ -34,10 +36,6 @@
 bool squelch = true;
 bool leak_check = true;
 
-static auto* g_memory_allocator = new grpc_core::MemoryAllocator(
-    grpc_core::ResourceQuota::Default()->memory_quota()->CreateMemoryAllocator(
-        "test"));
-
 static constexpr size_t kChunkSize = 17;
 using IntHdl = std::shared_ptr<int>;
 
@@ -50,15 +48,15 @@ struct Comparison {
 
   // Check that both chunked and std are equivalent.
   void AssertOk() const {
-    GPR_ASSERT(std.size() == chunked.size());
+    CHECK(std.size() == chunked.size());
     auto it_chunked = chunked.cbegin();
     auto it_std = std.cbegin();
     while (it_std != std.cend()) {
-      GPR_ASSERT(**it_std == **it_chunked);
+      CHECK(**it_std == **it_chunked);
       ++it_chunked;
       ++it_std;
     }
-    GPR_ASSERT(it_chunked == chunked.cend());
+    CHECK(it_chunked == chunked.cend());
   }
 };
 
@@ -169,7 +167,9 @@ class Fuzzer {
     return &vectors_.emplace(index, Comparison(arena_.get())).first->second;
   }
 
-  ScopedArenaPtr arena_ = MakeScopedArena(128, g_memory_allocator);
+  MemoryAllocator memory_allocator_ = MemoryAllocator(
+      ResourceQuota::Default()->memory_quota()->CreateMemoryAllocator("test"));
+  ScopedArenaPtr arena_ = MakeScopedArena(128, &memory_allocator_);
   std::map<int, Comparison> vectors_;
 };
 }  // namespace grpc_core

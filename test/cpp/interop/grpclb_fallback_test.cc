@@ -1,22 +1,20 @@
-/*
- *
- * Copyright 2019 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
-#include <grpc/support/port_platform.h>
+//
+//
+// Copyright 2019 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -33,16 +31,20 @@
 #include <thread>
 
 #include "absl/flags/flag.h"
+#include "absl/log/check.h"
+#include "absl/strings/str_format.h"
 #include "absl/time/time.h"
 
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/port_platform.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/support/channel_arguments.h>
 
 #include "src/core/lib/gpr/string.h"
+#include "src/core/lib/gprpp/crash.h"
 #include "src/core/lib/iomgr/port.h"
 #include "src/core/lib/iomgr/socket_mutator.h"
 #include "src/proto/grpc/testing/empty.pb.h"
@@ -103,10 +105,10 @@ GrpclbRouteType DoRPCAndGetPath(TestService::Stub* stub, int deadline_seconds,
             s.error_message().c_str());
     return GrpclbRouteType::GRPCLB_ROUTE_TYPE_UNKNOWN;
   }
-  GPR_ASSERT(response.grpclb_route_type() ==
-                 GrpclbRouteType::GRPCLB_ROUTE_TYPE_BACKEND ||
-             response.grpclb_route_type() ==
-                 GrpclbRouteType::GRPCLB_ROUTE_TYPE_FALLBACK);
+  CHECK(response.grpclb_route_type() ==
+            GrpclbRouteType::GRPCLB_ROUTE_TYPE_BACKEND ||
+        response.grpclb_route_type() ==
+            GrpclbRouteType::GRPCLB_ROUTE_TYPE_FALLBACK);
   gpr_log(GPR_INFO, "DoRPCAndGetPath done. grpclb_route_type:%d",
           response.grpclb_route_type());
   return response.grpclb_route_type();
@@ -116,25 +118,18 @@ GrpclbRouteType DoRPCAndGetPath(TestService::Stub* stub, int deadline_seconds) {
   return DoRPCAndGetPath(stub, deadline_seconds, FailFast);
 }
 
-GrpclbRouteType DoWaitForReadyRPCAndGetPath(TestService::Stub* stub,
-                                            int deadline_seconds) {
-  return DoRPCAndGetPath(stub, deadline_seconds, WaitForReady);
-}
-
 bool TcpUserTimeoutMutateFd(int fd, grpc_socket_mutator* /*mutator*/) {
   int timeout = 20000;  // 20 seconds
   gpr_log(GPR_INFO, "Setting socket option TCP_USER_TIMEOUT on fd: %d", fd);
   if (0 != setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &timeout,
                       sizeof(timeout))) {
-    gpr_log(GPR_ERROR, "Failed to set socket option TCP_USER_TIMEOUT");
-    abort();
+    grpc_core::Crash("Failed to set socket option TCP_USER_TIMEOUT");
   }
   int newval;
   socklen_t len = sizeof(newval);
   if (0 != getsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &newval, &len) ||
       newval != timeout) {
-    gpr_log(GPR_ERROR, "Failed to get expected socket option TCP_USER_TIMEOUT");
-    abort();
+    grpc_core::Crash("Failed to get expected socket option TCP_USER_TIMEOUT");
   }
   return true;
 }
@@ -171,13 +166,13 @@ void RunCommand(const std::string& command) {
   if (WIFEXITED(out)) {
     int code = WEXITSTATUS(out);
     if (code != 0) {
-      gpr_log(GPR_ERROR, "RunCommand failed exit code:%d command:|%s|", code,
-              command.c_str());
-      abort();
+      grpc_core::Crash(
+          absl::StrFormat("RunCommand failed exit code:%d command:|%s|", code,
+                          command.c_str()));
     }
   } else {
-    gpr_log(GPR_ERROR, "RunCommand failed command:|%s|", command.c_str());
-    abort();
+    grpc_core::Crash(
+        absl::StrFormat("RunCommand failed command:|%s|", command.c_str()));
   }
 }
 
@@ -193,7 +188,7 @@ void WaitForFallbackAndDoRPCs(TestService::Stub* stub) {
       gpr_log(GPR_ERROR,
               "Got grpclb route type backend. Backends are "
               "supposed to be unreachable, so this test is broken");
-      GPR_ASSERT(0);
+      CHECK(0);
     }
     if (grpclb_route_type == GrpclbRouteType::GRPCLB_ROUTE_TYPE_FALLBACK) {
       gpr_log(GPR_INFO,
@@ -209,12 +204,11 @@ void WaitForFallbackAndDoRPCs(TestService::Stub* stub) {
   }
   if (!fallback) {
     gpr_log(GPR_ERROR, "Didn't fall back within deadline");
-    GPR_ASSERT(0);
+    CHECK(0);
   }
   for (int i = 0; i < 30; i++) {
     GrpclbRouteType grpclb_route_type = DoRPCAndGetPath(stub, 20);
-    GPR_ASSERT(grpclb_route_type ==
-               GrpclbRouteType::GRPCLB_ROUTE_TYPE_FALLBACK);
+    CHECK(grpclb_route_type == GrpclbRouteType::GRPCLB_ROUTE_TYPE_FALLBACK);
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 }
@@ -228,7 +222,7 @@ void DoFallbackBeforeStartupTest() {
 void DoFallbackAfterStartupTest() {
   std::unique_ptr<TestService::Stub> stub = CreateFallbackTestStub();
   GrpclbRouteType grpclb_route_type = DoRPCAndGetPath(stub.get(), 20);
-  GPR_ASSERT(grpclb_route_type == GrpclbRouteType::GRPCLB_ROUTE_TYPE_BACKEND);
+  CHECK(grpclb_route_type == GrpclbRouteType::GRPCLB_ROUTE_TYPE_BACKEND);
   RunCommand(absl::GetFlag(FLAGS_induce_fallback_cmd));
   WaitForFallbackAndDoRPCs(stub.get());
 }
@@ -245,9 +239,8 @@ int main(int argc, char** argv) {
     DoFallbackAfterStartupTest();
     gpr_log(GPR_INFO, "DoFallbackBeforeStartup done!");
   } else {
-    gpr_log(GPR_ERROR, "Invalid test case: %s",
-            absl::GetFlag(FLAGS_test_case).c_str());
-    abort();
+    grpc_core::Crash(absl::StrFormat("Invalid test case: %s",
+                                     absl::GetFlag(FLAGS_test_case).c_str()));
   }
 }
 
@@ -255,9 +248,8 @@ int main(int argc, char** argv) {
 
 int main(int argc, char** argv) {
   grpc::testing::InitTest(&argc, &argv, true);
-  gpr_log(GPR_ERROR,
-          "This test requires TCP_USER_TIMEOUT, which isn't available");
-  abort();
+  grpc_core::Crash(
+      "This test requires TCP_USER_TIMEOUT, which isn't available");
 }
 
 #endif  // SOCKET_SUPPORTS_TCP_USER_TIMEOUT

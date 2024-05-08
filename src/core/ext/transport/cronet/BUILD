@@ -40,6 +40,7 @@ grpc_cc_library(
         "transport/cronet_transport.h",
     ],
     external_deps = [
+        "absl/log:check",
         "cronet_c_for_grpc",
     ],
     language = "c++",
@@ -47,7 +48,11 @@ grpc_cc_library(
         "client/secure/cronet_channel_create.h",
     ],
     deps = [
+        "//:channel",
+        "//:channel_create",
         "//:grpc_base",
         "//:grpc_transport_chttp2",
+        "//src/core:channel_args",
+        "//src/core:closure",
     ],
 )

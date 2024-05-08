@@ -1,20 +1,20 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include <forward_list>
 #include <functional>
@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "absl/memory/memory.h"
 
 #include <grpc/grpc.h>
@@ -37,6 +38,7 @@
 #include <grpcpp/client_context.h>
 #include <grpcpp/generic/generic_stub.h>
 
+#include "src/core/lib/gprpp/crash.h"
 #include "src/core/lib/surface/completion_queue.h"
 #include "src/proto/grpc/testing/benchmark_service.grpc.pb.h"
 #include "test/cpp/qps/client.h"
@@ -85,7 +87,7 @@ class ClientRpcContextUnaryImpl : public ClientRpcContext {
         prepare_req_(prepare_req) {}
   ~ClientRpcContextUnaryImpl() override {}
   void Start(CompletionQueue* cq, const ClientConfig& config) override {
-    GPR_ASSERT(!config.use_coalesce_api());  // not supported.
+    CHECK(!config.use_coalesce_api());  // not supported.
     StartInternal(cq);
   }
   bool RunNextState(bool /*ok*/, HistogramEntry* entry) override {
@@ -106,7 +108,7 @@ class ClientRpcContextUnaryImpl : public ClientRpcContext {
         next_state_ = State::INVALID;
         return false;
       default:
-        GPR_ASSERT(false);
+        grpc_core::Crash("unreachable");
         return false;
     }
   }
@@ -420,7 +422,7 @@ class ClientRpcContextStreamingPingPongImpl : public ClientRpcContext {
           return false;
           break;
         default:
-          GPR_ASSERT(false);
+          grpc_core::Crash("unreachable");
           return false;
       }
     }
@@ -474,7 +476,7 @@ class ClientRpcContextStreamingPingPongImpl : public ClientRpcContext {
     messages_issued_ = 0;
     coalesce_ = coalesce;
     if (coalesce_) {
-      GPR_ASSERT(messages_per_stream_ != 0);
+      CHECK_NE(messages_per_stream_, 0);
       context_.set_initial_metadata_corked(true);
     }
     stream_ = prepare_req_(stub_, &context_, cq);
@@ -542,7 +544,7 @@ class ClientRpcContextStreamingFromClientImpl : public ClientRpcContext {
         prepare_req_(prepare_req) {}
   ~ClientRpcContextStreamingFromClientImpl() override {}
   void Start(CompletionQueue* cq, const ClientConfig& config) override {
-    GPR_ASSERT(!config.use_coalesce_api());  // not supported yet.
+    CHECK(!config.use_coalesce_api());  // not supported yet.
     StartInternal(cq);
   }
   bool RunNextState(bool ok, HistogramEntry* entry) override {
@@ -576,7 +578,7 @@ class ClientRpcContextStreamingFromClientImpl : public ClientRpcContext {
           next_state_ = State::STREAM_IDLE;
           break;  // loop around
         default:
-          GPR_ASSERT(false);
+          grpc_core::Crash("unreachable");
           return false;
       }
     }
@@ -674,7 +676,7 @@ class ClientRpcContextStreamingFromServerImpl : public ClientRpcContext {
         prepare_req_(prepare_req) {}
   ~ClientRpcContextStreamingFromServerImpl() override {}
   void Start(CompletionQueue* cq, const ClientConfig& config) override {
-    GPR_ASSERT(!config.use_coalesce_api());  // not supported
+    CHECK(!config.use_coalesce_api());  // not supported
     StartInternal(cq);
   }
   bool RunNextState(bool ok, HistogramEntry* entry) override {
@@ -697,7 +699,7 @@ class ClientRpcContextStreamingFromServerImpl : public ClientRpcContext {
           next_state_ = State::STREAM_IDLE;
           break;  // loop around
         default:
-          GPR_ASSERT(false);
+          grpc_core::Crash("unreachable");
           return false;
       }
     }
@@ -789,7 +791,7 @@ class ClientRpcContextGenericStreamingImpl : public ClientRpcContext {
         prepare_req_(std::move(prepare_req)) {}
   ~ClientRpcContextGenericStreamingImpl() override {}
   void Start(CompletionQueue* cq, const ClientConfig& config) override {
-    GPR_ASSERT(!config.use_coalesce_api());  // not supported yet.
+    CHECK(!config.use_coalesce_api());  // not supported yet.
     StartInternal(cq, config.messages_per_stream());
   }
   bool RunNextState(bool ok, HistogramEntry* entry) override {
@@ -841,7 +843,7 @@ class ClientRpcContextGenericStreamingImpl : public ClientRpcContext {
           next_state_ = State::INVALID;
           return false;
         default:
-          GPR_ASSERT(false);
+          grpc_core::Crash("unreachable");
           return false;
       }
     }

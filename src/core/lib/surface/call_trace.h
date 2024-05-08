@@ -12,19 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GRPC_CORE_LIB_SURFACE_CALL_TRACE_H
-#define GRPC_CORE_LIB_SURFACE_CALL_TRACE_H
+#ifndef GRPC_SRC_CORE_LIB_SURFACE_CALL_TRACE_H
+#define GRPC_SRC_CORE_LIB_SURFACE_CALL_TRACE_H
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/lib/channel/channel_fwd.h"
 #include "src/core/lib/debug/trace.h"
 
 extern grpc_core::TraceFlag grpc_call_trace;
 
-namespace grpc_core {
-const grpc_channel_filter* PromiseTracingFilterFor(
-    const grpc_channel_filter* filter);
-}
-
-#endif  // GRPC_CORE_LIB_SURFACE_CALL_TRACE_H
+#endif  // GRPC_SRC_CORE_LIB_SURFACE_CALL_TRACE_H

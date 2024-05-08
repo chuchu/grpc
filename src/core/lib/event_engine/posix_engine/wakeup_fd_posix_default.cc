@@ -11,12 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <grpc/support/port_platform.h>
-
 #include <memory>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+
+#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/event_engine/posix_engine/wakeup_fd_eventfd.h"
 #include "src/core/lib/event_engine/posix_engine/wakeup_fd_pipe.h"
@@ -24,7 +24,7 @@
 #include "src/core/lib/iomgr/port.h"
 
 namespace grpc_event_engine {
-namespace posix_engine {
+namespace experimental {
 
 #ifdef GRPC_POSIX_WAKEUP_FD
 
@@ -53,7 +53,7 @@ absl::StatusOr<std::unique_ptr<WakeupFd>> CreateWakeupFd() {
   return g_wakeup_fd_fn();
 }
 
-#else /* GRPC_POSIX_WAKEUP_FD */
+#else  // GRPC_POSIX_WAKEUP_FD
 
 bool SupportsWakeupFd() { return false; }
 
@@ -61,7 +61,7 @@ absl::StatusOr<std::unique_ptr<WakeupFd>> CreateWakeupFd() {
   return absl::NotFoundError("Wakeup-fd is not supported on this system");
 }
 
-#endif /* GRPC_POSIX_WAKEUP_FD */
+#endif  // GRPC_POSIX_WAKEUP_FD
 
-}  // namespace posix_engine
+}  // namespace experimental
 }  // namespace grpc_event_engine

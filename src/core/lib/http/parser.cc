@@ -1,22 +1,20 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
-#include <grpc/support/port_platform.h>
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include "src/core/lib/http/parser.h"
 
@@ -24,10 +22,12 @@
 
 #include <algorithm>
 
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/port_platform.h>
 
 grpc_core::TraceFlag grpc_http1_trace(false, "http1");
 
@@ -85,7 +85,7 @@ static grpc_error_handle handle_response_line(grpc_http_parser* parser) {
     return GRPC_ERROR_CREATE("Expected ' '");
   }
 
-  /* we don't really care about the status code message */
+  // we don't really care about the status code message
 
   return absl::OkStatus();
 }
@@ -178,7 +178,7 @@ static grpc_error_handle add_header(grpc_http_parser* parser) {
   grpc_http_header hdr = {nullptr, nullptr};
   grpc_error_handle error;
 
-  GPR_ASSERT(cur != end);
+  CHECK(cur != end);
 
   if (*cur == ' ' || *cur == '\t') {
     error = GRPC_ERROR_CREATE("Continued header lines not supported yet");
@@ -192,14 +192,14 @@ static grpc_error_handle add_header(grpc_http_parser* parser) {
     error = GRPC_ERROR_CREATE("Didn't find ':' in header string");
     goto done;
   }
-  GPR_ASSERT(cur >= beg);
+  CHECK(cur >= beg);
   hdr.key = buf2str(beg, static_cast<size_t>(cur - beg));
-  cur++; /* skip : */
+  cur++;  // skip :
 
   while (cur != end && (*cur == ' ' || *cur == '\t')) {
     cur++;
   }
-  GPR_ASSERT((size_t)(end - cur) >= parser->cur_line_end_length);
+  CHECK((size_t)(end - cur) >= parser->cur_line_end_length);
   size = static_cast<size_t>(end - cur) - parser->cur_line_end_length;
   if ((size != 0) && (cur[size - 1] == '\r')) {
     size--;
@@ -314,7 +314,7 @@ static grpc_error_handle addbyte_body(grpc_http_parser* parser, uint8_t byte) {
           return absl::OkStatus();
         } else {
           parser->http.response->chunk_length--;
-          /* fallback to the normal body appending code below */
+          // fallback to the normal body appending code below
         }
         break;
       case GRPC_HTTP_CHUNKED_CONSUME_LF:
@@ -324,7 +324,7 @@ static grpc_error_handle addbyte_body(grpc_http_parser* parser, uint8_t byte) {
         parser->http.response->chunked_state = GRPC_HTTP_CHUNKED_LENGTH;
         return absl::OkStatus();
       case GRPC_HTTP_CHUNKED_PLAIN:
-        /* avoiding warning; just fallback to normal codepath */
+        // avoiding warning; just fallback to normal codepath
         break;
     }
     body_length = &parser->http.response->body_length;
@@ -337,7 +337,7 @@ static grpc_error_handle addbyte_body(grpc_http_parser* parser, uint8_t byte) {
   }
 
   if (*body_length == parser->body_capacity) {
-    parser->body_capacity = std::max(size_t(8), parser->body_capacity * 3 / 2);
+    parser->body_capacity = std::max(size_t{8}, parser->body_capacity * 3 / 2);
     *body = static_cast<char*>(gpr_realloc(*body, parser->body_capacity));
   }
   (*body)[*body_length] = static_cast<char>(byte);
